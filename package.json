@@ -1,0 +1,22 @@
+{
+  "name": "okx-seller",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --no-warnings --max-old-space-size=8192 --experimental-specifier-resolution=node --loader ts-node/esm --import ./logError.js ./start.ts",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.7.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "ccxt": "^4.4.22"
+  }
+}
