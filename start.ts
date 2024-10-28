@@ -47,13 +47,56 @@ async function fetchWithRetry<T>(
     console.log(`[${getCurrentTime()}] Начало мониторинга баланса GRASS...`);
 
     while (true) {
+      const fundingBalance = await fetchWithRetry(() =>
+        exchange.fetchBalance({ type: 'funding' })
+      );
+
+      if (!fundingBalance || !fundingBalance.free) {
+        console.error(
+          `[${getCurrentTime()}] Не удалось получить общий баланс...`
+        );
+        continue;
+      }
+
+      const fundingFreeBalance = fundingBalance.free as unknown as {
+        [key: string]: number;
+      };
+      let totalGrassBalance: number = fundingFreeBalance['GRASS'] || 0;
+      const amountToTransfer = totalGrassBalance * 0.999;
+
+      if (amountToTransfer > 5) {
+        console.log(
+          `[${getCurrentTime()}] Обнаружено ${amountToTransfer} GRASS на общем балансе. Перевод на торговый аккаунт...`
+        );
+
+        try {
+          await fetchWithRetry(() =>
+            exchange.transfer('GRASS', amountToTransfer, 'funding', 'spot')
+          );
+        } catch (error) {
+          console.error(
+            `[${getCurrentTime()}] Ошибка при переводе токенов:`,
+            error
+          );
+        }
+
+        console.log(
+          `[${getCurrentTime()}] Переведено ${amountToTransfer} GRASS на торговый аккаунт...`
+        );
+      }
+
       const balance = await fetchWithRetry(() => exchange.fetchBalance());
-      if (!balance) continue;
+      if (!balance || !balance.free) {
+        console.error(
+          `[${getCurrentTime()}] Не удалось получить баланс торгового аккаунта...`
+        );
+        continue;
+      }
 
       const freeBalance = balance.free as unknown as { [key: string]: number };
       let grassBalance: number = freeBalance['GRASS'] || 0;
 
-      if (grassBalance >= 3) {
+      if (grassBalance >= 5) {
         const ticker = await fetchWithRetry(() => exchange.fetchTicker(symbol));
         if (!ticker) continue;
 
@@ -115,7 +158,7 @@ async function fetchWithRetry<T>(
                     const updatedBalance = await fetchWithRetry(() =>
                       exchange.fetchBalance()
                     );
-                    if (updatedBalance) {
+                    if (updatedBalance && updatedBalance.free) {
                       const updatedFreeBalance =
                         updatedBalance.free as unknown as {
                           [key: string]: number;
